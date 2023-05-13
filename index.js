@@ -1,13 +1,33 @@
 const express = require('express')
 const cors = require('cors')
 const bodyParser = require('body-parser')
+const dotenv = require('dotenv')
+const Session = require('express-session')
+
+dotenv.config()
 
 const { SismoConnect, AuthType } = require('@sismo-core/sismo-connect-server');
+const { COOKIE_NAME, COOKIE_SECRET} = process.env;
 // const {SismoConnectButton, AuthType, SismoConnectClientConfig, SismoConnectResponse } = require("@sismo-core/sismo-connect-react");
 
 const app = express()
-app.use(cors())
+app.use(cors({origin: 'http://localhost:3000', credentials: true}))
 app.use(bodyParser.json())
+app.use(
+  Session({
+    name: COOKIE_NAME,
+    secret: COOKIE_SECRET,
+    resave: true,
+    saveUninitialized: true,
+    cookie: {
+      secure: false, //process.env.NODE_ENV !== "dev",
+      sameSite: true,
+      httpOnly: true,
+    },
+  })
+);
+
+
 
 const {account} = "0x0x072d7e87c13bCe2751B5766A0E2280BAD235974f";
 
@@ -35,8 +55,14 @@ app.post('/',async function (req, res) {
             console.log("Response verified:", result.response);
             // vaultId = hash(userVaultSecret, appId). 
             // the vaultId is an app-specific, anonymous identifier of a vault
-            console.log("VaultId: ", result.getUserId(AuthType.VAULT))
-            res.status(200).send(result);
+            console.log("VaultId: ", result.getUserId(AuthType.VAULT));
+            const verifiedGroups = result.claims.map(claim => claim.groupId);
+            console.log(verifiedGroups);
+            req.session.groups = verifiedGroups;
+            req.session.save(
+              () =>  res.status(200).send(result)
+            ) 
+            
         } catch (e) {
             console.error(e);
             res.status(400).send();
