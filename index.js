@@ -73,6 +73,11 @@ app.post('/',async function (req, res) {
 
 })
 
+app.get('/me',async function (req, res) {
+  const group = req.session.groups
+  console.log(group)
+  res.status(200).send({group});
+})
 
 app.listen(4500, () => {
     console.log('Server is running on port 4500');
